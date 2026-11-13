@@ -407,6 +407,23 @@ ${rows || '<div class="card"><p class="sub">Rien de prévu. Une journée pour re
 </main>${nav()}`;
 }
 
+function sheetAll() {
+  const days = scheduleWeek();
+  const placed = new Set();
+  const groups = [];
+  for (let i = 0; i < 7; i++) {
+    const list = days[i].map(byId).filter((t) => t && !t.done);
+    list.forEach((t) => placed.add(t.id));
+    if (list.length) groups.push({ title: i === 0 ? "Aujourd'hui" : i === 1 ? 'Demain' : cap(WD[wdOf(addDays(today(), i))]) + ' ' + Number(addDays(today(), i).slice(8)), list });
+  }
+  const later = S.tasks.filter((t) => !t.done && !placed.has(t.id));
+  if (later.length) groups.push({ title: 'Plus tard', list: later });
+  return `<div class="sheet-bg" data-act="sheetx"><div class="sheet" role="dialog" aria-label="Tout ce que Charlie garde">
+<div class="row between"><h2>Tout ce que Charlie garde</h2><button class="iconbtn" style="width:44px;height:44px;border-radius:14px" data-act="sheetx" aria-label="Fermer">${ICON.x}</button></div>
+<p class="sub" style="font-size:15px">Tu n'as pas besoin de regarder ça. C'est juste là, au cas où.</p>
+${groups.length ? groups.map((g) => `<div class="eyebrow" style="margin-top:6px">${esc(g.title.toUpperCase())}</div>${g.list.map((t) => `<div class="step"><div style="flex:1"><div class="t">${esc(t.title)}</div><div class="m">${t.group ? esc(t.group) + ' · ' : ''}environ ${t.min} min</div></div><button class="iconbtn" style="width:44px;height:44px;border:none;background:transparent" data-act="rmtask" data-id="${t.id}" aria-label="Supprimer cette tâche">${ICON.x}</button></div>`).join('')}`).join('') : '<p class="sub">Rien en attente. Ta tête est vide, c\'est parfait.</p>'}
+</div></div>`;
+}
 function viewDump() {
   const last = UI.dump.last;
   let result = '';
@@ -438,7 +455,8 @@ ${micNote()}
 ${UI.when.mode === 'date' ? `<label for="whenDate" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Choisir le jour</label><input id="whenDate" class="input" type="date" min="${addDays(today(), 1)}" value="${esc(UI.when.date)}" data-act-change="whendate">` : ''}</div>
 <p class="muted" style="font-size:14px;font-weight:600;line-height:1.4">Astuce : sur iPhone, le micro de ton clavier dicte aussi, et ça marche partout.</p>
 ${result}
-</main>${nav()}`;
+<button class="btn text" style="align-self:flex-start" data-act="sheetall">Voir tout ce que Charlie garde</button>
+</main>${nav()}${UI.sheet === 'all' ? sheetAll() : ''}`;
 }
 
 function viewGarage() {
@@ -674,6 +692,13 @@ function dictate(inputId, after, prefix) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   const kb = "La dictée de l'appli ne marche pas ici. Touche le micro de ton clavier, en bas à droite : ça marche pareil.";
   if (REC) { try { REC.stop(); } catch (e) {} return; }
+  if (window.navigator.standalone) {
+    UI.micMsg = "Sur iPhone, dans l'appli installée, c'est le micro de ton clavier qui dicte : touche-le, en bas à droite du clavier.";
+    render();
+    const el0 = document.getElementById(inputId);
+    if (el0) el0.focus();
+    return;
+  }
   if (!SR) { UI.micMsg = kb; render(); return; }
   const rec = new SR();
   REC = rec;
@@ -751,6 +776,8 @@ const ACTIONS = {
   },
   sheet: () => { UI.sheet = true; render(); },
   sheetx: () => { UI.sheet = false; render(); },
+  sheetall: () => { UI.sheet = 'all'; render(); },
+  rmtask: (d) => { S.tasks = S.tasks.filter((x) => x.id !== d.id); ensurePlan(); save(); render(); },
   weekday: (d) => { UI.week = Number(d.i); render(); },
   later: (d) => { const t = byId(d.id); t.pin = addDays(today(), Number(d.i) + 1); save(); toast('Déplacée au lendemain.', 2500); render(); },
   undo: () => { (UI.dump.last || []).forEach((t) => { S.tasks = S.tasks.filter((x) => x.id !== t.id); }); UI.dump.last = []; ensurePlan(); save(); render(); },
