@@ -2,7 +2,7 @@
 /* Charlie Focus : une petite appli qui dit quoi faire, sans pression. */
 
 const KEY = 'charlie.v1';
-const APP_VERSION = 8;
+const APP_VERSION = 9;
 const SPEED = Number(new URLSearchParams(location.search).get('speed')) || 1;
 
 /* ---------- Données ---------- */
@@ -303,10 +303,12 @@ function viewOnboarding() {
   return `<main class="screen" style="justify-content:center">
 <div class="avatar pop" style="width:56px;height:56px;border-radius:28px;font-size:24px" aria-hidden="true">C</div>
 <h1>Salut, moi c'est Charlie.</h1>
-<p class="sub">Je suis là pour te dire quoi faire, une chose à la fois. Pas de liste interminable, pas de pression. Comment tu t'appelles ?</p>
+<p class="sub">Je te dis quoi faire, une chose à la fois.</p>
 <form data-form="onboard" style="display:flex;flex-direction:column;gap:12px">
-<label for="nm" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Ton prénom</label>
+<label for="nm" class="eyebrow">TON PRÉNOM</label>
 <input id="nm" class="input" type="text" autocomplete="given-name" placeholder="Ton prénom" maxlength="24">
+<label for="first" class="eyebrow" style="margin-top:4px">UNE CHOSE À FAIRE AUJOURD'HUI ? (SI TU VEUX)</label>
+<input id="first" class="input" type="text" placeholder="Ex : appeler le dentiste" enterkeyhint="go">
 <button class="btn" type="submit">C'est parti</button>
 </form>
 </main>`;
@@ -362,8 +364,9 @@ function viewToday() {
     : `<div class="card pop" style="gap:12px">
 <div class="eyebrow" style="color:var(--dark)">${cur.group ? esc(cur.group.toUpperCase()) : 'JUSTE ÇA, POUR L\'INSTANT'}</div>
 <div class="big" style="font-size:28px">${esc(cur.title)}</div>
-<div class="row" style="flex-wrap:wrap;gap:8px"><span class="chip">Environ ${cur.min} min</span>${cur.due === today() ? '<span class="chip tint">Pour aujourd\'hui</span>' : ''}${afternoon ? '<span class="chip tint">Bon moment pour toi</span>' : ''}</div>
-<button class="btn" data-act="focus" data-id="${cur.id}">Je m'y mets · 2 minutes d'abord</button>
+<div class="row" style="flex-wrap:wrap;gap:8px"><span class="chip">Environ ${cur.min} min en tout</span>${cur.due === today() ? '<span class="chip tint">Pour aujourd\'hui</span>' : ''}${afternoon ? '<span class="chip tint">Bon moment pour toi</span>' : ''}</div>
+<button class="btn" data-act="focus" data-id="${cur.id}">Je démarre</button>
+<p class="muted" style="font-size:14px;font-weight:600;text-align:center;margin-top:-4px">Un tour de chauffe pour te lancer. Ensuite, tu décides.</p>
 <div class="row" style="justify-content:center;gap:4px"><button class="btn text" data-act="done" data-id="${cur.id}">C'est fait</button><span class="muted" aria-hidden="true">·</span><button class="btn text" data-act="swap" data-id="${cur.id}">Pas celle-ci</button></div></div>`;
   const rows = others.length ? `<div style="display:flex;flex-direction:column;gap:2px"><div class="eyebrow" style="margin-bottom:4px">ENSUITE</div>${others.map(({ t, i }) => `<div style="display:flex;align-items:center;gap:10px;min-height:40px;font-size:16px;font-weight:700;color:${t.done ? 'var(--ink3)' : 'var(--ink2)'};${t.done ? 'text-decoration:line-through' : ''}"><span style="width:20px;display:flex;justify-content:center;color:var(--main)">${t.done ? ICON.check : '•'}</span>${esc(t.title)}</div>`).join('')}</div>` : '';
   return `<main class="screen">${head}
@@ -400,7 +403,7 @@ function viewWeek() {
 <div class="row between"><div style="font-size:17px;font-weight:800;line-height:1.2;${t.done ? 'text-decoration:line-through;color:var(--ink3)' : ''}">${esc(t.title)}</div>${k === 0 && !t.done ? '<span class="chip tint">D\'abord</span>' : ''}</div>
 <div class="row between"><span class="muted" style="font-size:14px;font-weight:700">Environ ${t.min} min${t.group ? ' · ' + esc(t.group) : ''}</span>${!t.done ? `<button class="btn text" style="min-height:44px" data-act="later" data-id="${t.id}" data-i="${sel}">Demain →</button>` : ''}</div></div>`).join('');
   return `<main class="screen">
-<div><h1>Ma semaine</h1><p class="sub" style="margin-top:6px">Charlie a tout organisé. Rien à faire ici, sauf si tu veux changer quelque chose.</p></div>
+<div><h1>Ma semaine</h1><p class="sub" style="margin-top:6px">Tout est organisé. Change quelque chose seulement si tu veux.</p></div>
 <div class="days" role="group" aria-label="Jours">${chips}</div>
 <div class="row between"><h2>${dayTitle(sel)}</h2><span class="chip tint">${badge}</span></div>
 ${rows || '<div class="card"><p class="sub">Rien de prévu. Une journée pour respirer.</p></div>'}
@@ -437,14 +440,14 @@ function viewDump() {
     result = `<div class="card pop" style="gap:12px">
 <div style="font-size:14px;font-weight:800;color:var(--dark)">C'est noté. Charlie s'en occupe.</div>
 <div style="font-size:24px;line-height:1.15;font-weight:800">${esc(title)}</div>
-<div style="font-size:15px;font-weight:700;color:var(--dark);line-height:1.35">${first.group ? 'C\'est grand, alors Charlie l\'a découpée en petits pas. Aucun ne demande toute ta concentration.' : 'C\'est déjà petit. Charlie la garde telle quelle.'}</div>
+<div style="font-size:15px;font-weight:700;color:var(--dark);line-height:1.35">${first.group ? 'Trop grand d\'un coup : je l\'ai découpée en petits pas.' : 'C\'est déjà petit, je la garde telle quelle.'}</div>
 <div class="steps">${steps.map((s) => `<div class="step"><div style="flex:1"><div class="t">${esc(s.title)}</div><div class="m">Environ ${s.min} min</div></div>${steps.length > 1 ? `<button class="iconbtn" style="width:44px;height:44px;border:none;background:transparent" data-act="rmstep" data-id="${s.id}" aria-label="Retirer cette étape">${ICON.x}</button>` : ''}</div>`).join('')}</div>
 <div class="tint-box row between" style="gap:10px"><span>Je te la proposerai ${esc(when)}${when === "aujourd'hui" || when === 'demain' || t0.pin ? '' : ', un pas à la fois'}.</span><button class="btn small ghost" style="border-color:var(--dark);color:var(--dark);background:transparent" data-act="undo">Annuler</button></div></div>`;
   } else if (last && last.length === 0) {
     result = `<div class="card pop" style="background:var(--ink);color:#F7F5FA"><div class="big">Annulé.</div><p style="font-size:18px;font-weight:600;line-height:1.4">Rien n'a été ajouté. Tu peux en noter une autre quand tu veux.</p></div>`;
   }
   return `<main class="screen">
-<div><h1>Vide-tête</h1><p class="sub" style="margin-top:6px">Écris ou dicte ce qui te trotte dans la tête, comme ça vient. Charlie découpe, planifie et range. Toi, tu n'as rien d'autre à faire.</p></div>
+<div><h1>Vide-tête</h1><p class="sub" style="margin-top:6px">Écris ce qui te trotte dans la tête. Je découpe, je planifie, je range.</p></div>
 <form data-form="dump" class="row" style="gap:8px">
 <label for="dumpIn" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Nouvelle pensée</label>
 <input id="dumpIn" class="input" data-draft="dumpIn" type="text" value="${esc(UI.drafts.dumpIn || '')}" placeholder="Ce qui me trotte dans la tête…" style="flex:1;min-width:0" enterkeyhint="done">
@@ -464,7 +467,7 @@ function viewGarage() {
   const { lv, newest } = carLevels(S.pieces);
   const parts = Object.keys(PART_NAMES).map((k) => `<div class="part ${k === newest ? 'new' : ''}"><span class="row between" style="gap:6px"><span>${PART_NAMES[k]}</span>${k === newest ? '<span class="chip" style="min-height:24px;padding:0 8px;background:var(--ink);color:#F7F5FA;font-size:12px">Nouveau</span>' : ''}</span><span>${[1, 2, 3].map((n) => `<i class="pip ${lv[n ? k : k] >= n ? 'on' : ''}"></i>`).join('')}</span></div>`).join('');
   const h = HELMETS[S.helmet] || HELMETS[0];
-  const msg = S.pieces === 0 ? 'Ta voiture est prête. Chaque tâche terminée lui ajoute une pièce, toute seule.' : `Nouveau : ${PART_NAMES[newest].toLowerCase()} installé. Rien à faire de ton côté : ça arrive tout seul à chaque tâche terminée.`;
+  const msg = S.pieces === 0 ? 'Chaque tâche terminée ajoute une pièce à ta voiture.' : `Nouveau : ${PART_NAMES[newest].toLowerCase()} installé. Chaque tâche terminée ajoute une pièce.`;
   return `<main class="screen">
 <div class="row between"><div><div class="muted" style="font-size:14px;font-weight:700">Ta voiture</div><h1>Garage</h1></div>
 <div class="row" style="gap:8px"><span class="chip tint" style="min-height:44px;font-size:16px;padding:0 16px;border-radius:22px" role="status">Niveau ${S.pieces}</span><button class="iconbtn" style="width:44px;height:44px;border-radius:14px" data-act="go" data-r="settings" aria-label="Réglages">${ICON.gear}</button></div></div>
@@ -494,7 +497,7 @@ function adaptCards() {
   const c = [];
   if (afternoonPattern()) c.push({ i: 0, seen: "Tu te mets plus facilement au travail l'après-midi.", does: 'Je te le signale quand c\'est le bon moment pour une tâche plus longue.' });
   if (overrunPattern()) c.push({ i: 1, seen: 'Tes sessions durent souvent plus longtemps que prévu.', does: 'Je te fais mon repère un peu plus tard, pour ne pas te couper dans ton élan.' });
-  if (twoMinPattern()) c.push({ i: 2, seen: 'Commencer pour 2 minutes marche bien pour toi.', does: "Je te propose toujours 2 minutes d'abord, sans autre engagement." });
+  if (twoMinPattern()) c.push({ i: 2, seen: 'Le tour de chauffe marche bien pour toi.', does: 'Je te propose toujours un tour de chauffe en premier, sans engagement.' });
   return c;
 }
 function viewSettings() {
@@ -508,7 +511,7 @@ function viewSettings() {
 <div class="card"><div class="eyebrow">AMBIANCE</div><div class="row" style="gap:8px">
 <button class="btn small ${S.accent === 'red' ? '' : 'ghost'}" style="flex:1" data-act="accent" data-v="red" aria-pressed="${S.accent === 'red'}">Circuit rouge</button>
 <button class="btn small ${S.accent === 'violet' ? '' : 'ghost'}" style="flex:1" data-act="accent" data-v="violet" aria-pressed="${S.accent === 'violet'}">Scène violette</button></div></div>
-<div><h2 style="margin-bottom:6px">Charlie s'adapte à toi</h2><p class="sub">Au fil des jours, Charlie remarque ce qui marche pour toi et l'ajuste tout seul. Tu n'as rien à régler.</p></div>
+<div><h2 style="margin-bottom:6px">Charlie s'adapte à toi</h2><p class="sub">Charlie remarque ce qui marche pour toi et l'ajuste tout seul.</p></div>
 ${cards.length ? cards.map((c) => `<div class="card" style="gap:8px;${S.adapt[c.i] ? '' : 'opacity:.75'}"><div class="eyebrow" style="color:var(--dark)">CHARLIE A REMARQUÉ</div><div style="font-size:17px;font-weight:800;line-height:1.25">${esc(c.seen)}</div><div class="sub" style="font-size:15px">${esc(c.does)}</div>
 <div class="row between"><span style="font-size:15px;font-weight:800;color:${S.adapt[c.i] ? 'var(--dark)' : 'var(--ink3)'}">${S.adapt[c.i] ? 'Appliqué' : 'Mis de côté'}</span><button class="btn small ${S.adapt[c.i] ? 'ghost' : ''}" data-act="adapt" data-i="${c.i}">${S.adapt[c.i] ? 'Pas pour moi' : 'Réactiver'}</button></div></div>`).join('') : '<div class="card"><p class="sub">Charlie t\'observe doucement. Quand il aura remarqué des choses utiles, elles apparaîtront ici.</p></div>'}
 <div class="tint-box">Charlie regarde seulement comment tu travailles, jamais ce que tu n'as pas fait.</div>
@@ -596,20 +599,21 @@ function viewFocus() {
 <circle id="fcar" cx="${q[0].toFixed(1)}" cy="${q[1].toFixed(1)}" r="10" fill="var(--main)" stroke="#fff" stroke-width="3"/>
 </svg></div>
 <div style="font-size:20px;font-weight:800;text-align:center">${F.running ? 'GO ' + esc(nameUp()) + ' GO !' : 'Pause. Tu reviens quand tu veux.'}</div>
+${F.planned === 120 && !F.extended ? '<p class="sub" style="text-align:center;font-size:15px">Tour de chauffe : un seul tour pour te lancer. Après, tu choisis de continuer ou non.</p>' : ''}
 <div id="finfo" style="font-size:17px;font-weight:700;text-align:center;color:var(--ink2)">${infoLine()}</div>
 <div style="text-align:center">${F.showEl ? `<span id="fel" class="chip tint" style="font-size:15px">${elapsedText()}</span>` : '<button class="btn text" data-act="showel">Depuis combien de temps ?</button>'}</div>
 <div class="row" style="gap:8px"><button class="btn ghost" style="flex:1" data-act="pause">${F.running ? 'Pause' : 'Reprendre'}</button><button class="btn" style="flex:1" data-act="finish">J'ai terminé</button></div>
 <form data-form="idea" class="row" style="gap:8px"><label for="ideaIn" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Une idée me vient</label><input id="ideaIn" class="input" type="text" placeholder="Une idée me vient… je la garde" style="flex:1;min-width:0;min-height:48px;font-size:16px"><button class="btn small" type="submit">Garder</button></form>
-<p class="muted" style="font-size:14px;font-weight:600;text-align:center">Tu peux verrouiller ton téléphone, Charlie garde le compte.</p></main>`;
+</main>`;
   }
   if (F.phase === 'launched') {
     return `<main class="screen" style="justify-content:center">
 <div class="avatar pop" style="width:56px;height:56px;border-radius:28px" aria-hidden="true">${ICON.check}</div>
 <div class="big">YOU GOT THIS !</div>
-<p class="sub" style="font-size:18px">Tu es lancée. Le plus dur est derrière toi. On continue un peu ?</p>
+<p class="sub" style="font-size:18px">Tour de chauffe terminé : te voilà lancée. On continue ?</p>
 <button class="btn" data-act="more" data-s="600">Encore 10 minutes</button>
 <button class="btn ghost" data-act="more" data-s="1500">Encore 25 minutes</button>
-<button class="btn text" data-act="stopnow">C'est bon pour maintenant</button></main>`;
+<button class="btn text" data-act="stopnow">Je m'arrête là</button></main>`;
   }
   if (F.phase === 'ended') {
     return `<main class="screen" style="justify-content:center">
@@ -832,8 +836,8 @@ const ACTIONS = {
   reset: () => { const keep = S.name; S = defaults(); S.name = ''; UI.resetAsk = false; save(); go('today'); },
   /* focus */
   focus: (d) => {
-    F = { taskId: d.id, phase: 'ready', planned: S.adapt[2] ? 120 : 600, startedAt0: 0 };
-    UI.route = 'focus'; render();
+    F = { taskId: d.id, phase: 'ready', planned: S.adapt[2] ? 120 : 600, startedAt0: Date.now() };
+    UI.route = 'focus'; startRun(F.planned);
   },
   dur: (d) => { F.planned = Number(d.s); render(); },
   start: () => { F.startedAt0 = Date.now(); startRun(F.planned); },
@@ -854,11 +858,10 @@ const ACTIONS = {
     captureDrafts();
     const text = (UI.drafts.odIn || '').trim();
     if (!text || !splitItems(text, true).length) return;
-    UI.od = { phase: 'thinking', text, restOpen: false };
+    UI.od = { phase: 'result', text, restOpen: false };
     odApply();
     setDraft('odIn', '');
     render();
-    setTimeout(() => { if (UI.route === 'overwhelmed' && UI.od.phase === 'thinking') { UI.od.phase = 'result'; render(); } }, 1500);
   },
   odedit: () => { odUndo(); UI.drafts.odIn = UI.od.text;  UI.od.phase = 'input'; if (window.speechSynthesis) window.speechSynthesis.cancel(); SPEAKING = false; render(); },
   odrest: () => { UI.od.restOpen = !UI.od.restOpen; render(); },
@@ -912,7 +915,11 @@ document.addEventListener('submit', (e) => {
   const v = inp ? inp.value.trim() : '';
   if (f.dataset.form === 'onboard') {
     if (!v) { inp.focus(); return; }
-    S.name = v; save(); render();
+    S.name = v;
+    const first = (document.getElementById('first') || {}).value || '';
+    const items = splitItems(first.trim(), false).map(makeItem);
+    if (items.length) { items.forEach((it) => { it.due = today(); }); createTasks(items); ensurePlan(); }
+    save(); UI.route = 'today'; render();
   } else if (f.dataset.form === 'dump') {
     if (v && UI.when.mode === 'date' && !whenDate()) { toast("Choisis d'abord le jour, juste au-dessus.", 3000); return; }
     if (v) addFromDump(v);
