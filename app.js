@@ -2,7 +2,7 @@
 /* Charlie Focus : une petite appli qui dit quoi faire, sans pression. */
 
 const KEY = 'charlie.v1';
-const APP_VERSION = 6;
+const APP_VERSION = 8;
 const SPEED = Number(new URLSearchParams(location.search).get('speed')) || 1;
 
 /* ---------- Données ---------- */
@@ -135,6 +135,7 @@ function createTasks(items) {
 function score(t) {
   const td = today();
   let s = 0;
+  if (t.prio) s += 200;
   if (t.due) { const d = diffDays(td, t.due); s += d <= 0 ? 100 : d === 1 ? 60 : d <= 3 ? 40 : 20; }
   if (t.urgent) s += 30;
   if (t.min <= 10) s += 8;
@@ -346,7 +347,7 @@ function viewToday() {
 <p class="sub">${hasAny ? 'Tout ce que tu as noté est rangé pour les prochains jours. Profite.' : 'Si quelque chose te trotte dans la tête, c\'est le moment de le déposer. Je m\'occupe de le ranger.'}</p>
 <button class="btn" data-act="go" data-r="dump">Vider ma tête</button>
 <button class="btn text" data-act="demo">Essayer avec un exemple</button></div>
-<div class="row" style="justify-content:center"><button class="pill" data-act="go" data-r="overwhelmed">Je suis dépassée</button></div></main>${nav()}`;
+<div class="row" style="justify-content:center"><button class="pill" data-act="go" data-r="overwhelmed">Par quoi commencer ?</button></div></main>${nav()}`;
   }
   const curI = curIndex(tasks);
   const all = curI < 0;
@@ -359,19 +360,18 @@ function viewToday() {
 <p style="font-size:18px;font-weight:600;line-height:1.4">Tu as fait ce qu'il fallait aujourd'hui. Le reste peut attendre demain.</p>
 <button class="btn" data-act="go" data-r="garage">Voir ma voiture</button></div>`
     : `<div class="card pop" style="gap:12px">
-<div class="eyebrow" style="color:var(--dark)">SECTEUR ${curI + 1} · JUSTE ÇA, POUR L'INSTANT</div>
+<div class="eyebrow" style="color:var(--dark)">${cur.group ? esc(cur.group.toUpperCase()) : 'JUSTE ÇA, POUR L\'INSTANT'}</div>
 <div class="big" style="font-size:28px">${esc(cur.title)}</div>
-<div class="row" style="flex-wrap:wrap;gap:8px"><span class="chip">Environ ${cur.min} min</span>${cur.group ? `<span class="chip">${esc(cur.group)}</span>` : ''}${cur.due === today() ? '<span class="chip tint">Pour aujourd\'hui</span>' : ''}${afternoon ? '<span class="chip tint">Bon moment pour toi</span>' : ''}</div>
-<p class="sub" style="font-size:15px">${esc(hint)}</p>
+<div class="row" style="flex-wrap:wrap;gap:8px"><span class="chip">Environ ${cur.min} min</span>${cur.due === today() ? '<span class="chip tint">Pour aujourd\'hui</span>' : ''}${afternoon ? '<span class="chip tint">Bon moment pour toi</span>' : ''}</div>
 <button class="btn" data-act="focus" data-id="${cur.id}">Je m'y mets · 2 minutes d'abord</button>
-<div class="row" style="gap:8px"><button class="btn ghost small" style="flex:1" data-act="done" data-id="${cur.id}">C'est fait</button><button class="btn ghost small" style="flex:1" data-act="swap" data-id="${cur.id}">Pas celle-ci</button></div></div>`;
-  const rows = others.map(({ t, i }) => `<button class="slot ${t.done ? 'done' : ''}" ${t.done ? 'disabled' : `data-act="cur" data-i="${i}"`}><span class="n">${t.done ? ICON.check : i + 1}</span><span style="flex:1">${esc(t.title)}</span></button>`).join('');
+<div class="row" style="justify-content:center;gap:4px"><button class="btn text" data-act="done" data-id="${cur.id}">C'est fait</button><span class="muted" aria-hidden="true">·</span><button class="btn text" data-act="swap" data-id="${cur.id}">Pas celle-ci</button></div></div>`;
+  const rows = others.length ? `<div style="display:flex;flex-direction:column;gap:2px"><div class="eyebrow" style="margin-bottom:4px">ENSUITE</div>${others.map(({ t, i }) => `<div style="display:flex;align-items:center;gap:10px;min-height:40px;font-size:16px;font-weight:700;color:${t.done ? 'var(--ink3)' : 'var(--ink2)'};${t.done ? 'text-decoration:line-through' : ''}"><span style="width:20px;display:flex;justify-content:center;color:var(--main)">${t.done ? ICON.check : '•'}</span>${esc(t.title)}</div>`).join('')}</div>` : '';
   return `<main class="screen">${head}
-<div>${circuitToday(tasks)}</div>
+<div style="max-width:300px;width:100%;margin:0 auto">${circuitToday(tasks)}</div>
 ${card}
-<div style="display:flex;flex-direction:column;gap:8px">${rows}</div>
-<div class="row between" style="margin-top:auto;padding-top:6px"><button class="btn text" data-act="sheet">Voir le reste</button><button class="pill" data-act="go" data-r="overwhelmed">Je suis dépassée</button></div>
-</main>${nav()}${UI.sheet ? sheetRest() : ''}`;
+${rows}
+<div class="row" style="justify-content:center;margin-top:auto;padding-top:6px"><button class="pill" data-act="go" data-r="overwhelmed">Par quoi commencer ?</button></div>
+</main>${nav()}`;
 }
 function sheetRest() {
   const td = today();
@@ -646,7 +646,7 @@ function odCompute(text) {
 }
 function odSummary(must) {
   const list = must.map((t, k) => (k === 0 ? "D'abord, " : 'Ensuite, ') + t.title + ', environ ' + t.min + ' minutes.').join(' ');
-  return "Respire, c'est bon. Aujourd'hui, tu n'as que ça à faire. " + list + " Tout le reste peut attendre, je m'en occupe. Tu y arrives.";
+  return "Voilà par où commencer. " + list + " Le reste peut attendre. Allez, c'est parti !";
 }
 let SPEAKING = false;
 function speak(text) {
@@ -663,30 +663,58 @@ function speak(text) {
 function viewOverwhelmed() {
   const od = UI.od;
   const back = `<button class="btn text" style="align-self:flex-start;gap:6px;padding:0" data-act="odleave">${ICON.back} Retour</button>`;
-  const bubbles = {
-    input: "Je suis là, avec toi. Tout va bien, on va s'en sortir. Vide tout ici, dans le désordre, comme ça vient. Écris ou dicte. L'ordre, c'est mon travail.",
-    thinking: "Je range tout ça pour toi. Tu n'as rien à faire.",
-    result: "Respire, c'est bon. J'ai tout noté, tout est en sécurité. Aujourd'hui, tu n'as que ça à faire, et rien d'autre. Tu y arrives, un pas à la fois."
+  const heads = {
+    input: ['Par quoi commencer ?', "Liste tout ce que tu as à faire, même en vrac. Je trie et je te dis quoi faire en premier."],
+    thinking: ['Je trie…', 'Une seconde.'],
+    result: ['Voilà par où commencer.', 'Le reste peut attendre, je le garde pour plus tard.']
   };
-  let body = `${od.phase !== 'input' ? `<div class="mine">${esc(od.text)}</div>` : ''}
-<div class="row" style="align-items:flex-start;gap:10px"><div class="avatar" aria-hidden="true">C</div><div class="bubble">${bubbles[od.phase]}</div></div>`;
+  let body = `<div><h1>${heads[od.phase][0]}</h1><p class="sub" style="margin-top:6px">${heads[od.phase][1]}</p></div>`;
   if (od.phase === 'result') {
     const r = odCompute(od.text);
-    const reasons = (it, k) => (it.due && diffDays(today(), it.due) <= 1 ? (k === 0 && r.must.length === 1 ? "Celle-ci a une échéance. C'est la seule qui ne peut pas attendre." : 'Elle a une échéance proche. Une à la fois.') : "Rien d'urgent aujourd'hui, alors on en choisit une seule, doucement.");
-    body += `<div class="card pop"><div class="eyebrow" style="color:var(--dark)">L'ESSENTIEL, RIEN DE PLUS</div>
+    const reasons = (it, k) => (it.due && diffDays(today(), it.due) <= 1 ? (k === 0 && r.must.length === 1 ? "Elle a une échéance, donc on commence par là." : 'Elle a une échéance proche. Une à la fois.') : "Rien d'urgent aujourd'hui : on commence par une seule, simple.");
+    body += `<div class="card pop"><div class="eyebrow" style="color:var(--dark)">À FAIRE EN PREMIER</div>
 ${r.must.map((t, k) => `<div class="row" style="align-items:flex-start;gap:12px;padding:12px;border-radius:18px;border:2px solid ${k === 0 ? 'var(--main)' : 'transparent'};background:${k === 0 ? '#fff' : 'var(--bg)'}"><div class="avatar" style="width:30px;height:30px;font-size:15px;background:${k === 0 ? 'var(--main)' : '#C9C3D6'};color:${k === 0 ? '#fff' : '#17161F'}">${k + 1}</div><div style="flex:1;display:flex;flex-direction:column;gap:4px"><div style="font-size:17px;font-weight:800;line-height:1.2">${esc(t.title)}</div><div class="muted" style="font-size:14px;font-weight:700">Environ ${t.min} min</div><div style="font-size:14px;font-weight:600;color:var(--ink2);line-height:1.3">${esc(reasons(t, k))}</div></div></div>`).join('')}
 <button class="btn ghost" data-act="speak" aria-pressed="${SPEAKING}">${ICON.speaker}${SPEAKING ? 'Arrêter la voix' : 'Écouter le résumé'}</button>
-<button class="btn" data-act="odapply">Mettre ça dans ma journée</button></div>
-<p class="sub">Tout le reste peut attendre, vraiment. Je le garde au chaud et je te le proposerai plus tard. Tu n'as rien à retenir.</p>
+<button class="btn" data-act="odstart">Voir ma journée</button></div>
+<p class="muted" style="font-size:15px;font-weight:600;line-height:1.4">Tout est déjà enregistré. Tu n'as rien à retenir ni à valider.</p>
 ${r.rest.length ? `<button class="btn text" style="align-self:flex-start" data-act="odrest">${od.restOpen ? 'Cacher' : 'Voir ce qui attend, si tu veux'}</button>${od.restOpen ? `<div style="display:flex;flex-direction:column;gap:6px">${r.rest.map((x) => `<div class="slot" style="min-height:44px;background:var(--bg)">${esc(x.title)}</div>`).join('')}</div>` : ''}` : ''}
 <button class="btn ghost small" style="align-self:flex-start" data-act="odedit">Ce n'est pas tout à fait ça</button>`;
   }
   const composer = od.phase === 'input' ? `<div style="background:#fff;border-radius:26px 26px 0 0;box-shadow:0 -6px 24px rgba(40,30,70,.08);padding:12px 18px calc(env(safe-area-inset-bottom) + 14px);display:flex;flex-direction:column;gap:10px">
 ${micNote()}
-<label for="odIn" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Tout ce qui te dépasse</label>
-<textarea id="odIn" class="input" data-draft="odIn" placeholder="Écris tout ici, dans le désordre…">${esc(UI.drafts.odIn || '')}</textarea>
-<div class="row" style="gap:10px">${micButton('odIn')}<button class="btn text" style="flex:1;justify-content:flex-start;padding:0" data-act="odsample">Essayer avec un exemple</button><button class="btn" data-act="odsend">Envoyer</button></div></div>` : '';
+<label for="odIn" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Tout ce que tu as à faire</label>
+<textarea id="odIn" class="input" data-draft="odIn" placeholder="Ex : devis à envoyer, appeler le dentiste, ranger le bureau…">${esc(UI.drafts.odIn || '')}</textarea>
+<div class="row" style="gap:10px">${micButton('odIn')}<button class="btn text" style="flex:1;justify-content:flex-start;padding:0" data-act="odsample">Essayer avec un exemple</button><button class="btn" data-act="odsend">Trouver l'ordre</button></div></div>` : '';
   return `<main class="screen" style="padding-bottom:12px">${back}<div style="display:flex;flex-direction:column;gap:14px">${body}</div></main>${composer}`;
+}
+
+/* Applique tout de suite ce qu'elle a dit : rien à valider, rien à perdre. */
+function odApply() {
+  const r = odCompute(UI.od.text);
+  const before = { plan: JSON.parse(JSON.stringify(S.plan)), ids: S.tasks.map((t) => t.id), prio: {} };
+  S.tasks.forEach((t) => { before.prio[t.id] = !!t.prio; });
+  const exist = (title) => S.tasks.find((t) => !t.done && (t.group || t.title).toLowerCase() === title.toLowerCase());
+  r.items.forEach((it) => { if (!exist(it.title)) createTasks([it]); });
+  const ids = [];
+  r.must.forEach((it) => {
+    const grp = S.tasks.filter((t) => !t.done && (t.group || t.title).toLowerCase() === it.title.toLowerCase()).sort((a, b) => (a.order || 0) - (b.order || 0));
+    grp.forEach((t) => { t.prio = true; });
+    if (grp[0] && !ids.includes(grp[0].id)) ids.push(grp[0].id);
+  });
+  S.plan = { date: today(), ids, bonus: false, locked: true };
+  UI.od.undo = before;
+  UI.cur = 0;
+  save();
+}
+function odFinish() { UI.od.restOpen = false; render(); }
+function odUndo() {
+  const b = UI.od.undo;
+  if (!b) return;
+  S.tasks = S.tasks.filter((t) => b.ids.includes(t.id));
+  S.tasks.forEach((t) => { t.prio = !!b.prio[t.id]; });
+  S.plan = b.plan;
+  UI.od.undo = null;
+  save();
 }
 
 /* ---------- Dictée ---------- */
@@ -827,31 +855,16 @@ const ACTIONS = {
     const text = (UI.drafts.odIn || '').trim();
     if (!text || !splitItems(text, true).length) return;
     UI.od = { phase: 'thinking', text, restOpen: false };
+    odApply();
     setDraft('odIn', '');
     render();
     setTimeout(() => { if (UI.route === 'overwhelmed' && UI.od.phase === 'thinking') { UI.od.phase = 'result'; render(); } }, 1500);
   },
-  odedit: () => { UI.drafts.odIn = UI.od.text;  UI.od.phase = 'input'; if (window.speechSynthesis) window.speechSynthesis.cancel(); SPEAKING = false; render(); },
+  odedit: () => { odUndo(); UI.drafts.odIn = UI.od.text;  UI.od.phase = 'input'; if (window.speechSynthesis) window.speechSynthesis.cancel(); SPEAKING = false; render(); },
   odrest: () => { UI.od.restOpen = !UI.od.restOpen; render(); },
   speak: () => speak(odSummary(odCompute(UI.od.text).must)),
-  odapply: () => {
-    const r = odCompute(UI.od.text);
-    const ids = [];
-    const exist = (title) => S.tasks.find((t) => !t.done && ((t.group || t.title).toLowerCase() === title.toLowerCase()));
-    r.items.forEach((it) => {
-      let t = exist(it.title);
-      if (!t) createTasks([it]);
-    });
-    r.must.forEach((it) => {
-      const group = S.tasks.filter((t) => !t.done && (t.group || t.title).toLowerCase() === it.title.toLowerCase()).sort((a, b) => (a.order || 0) - (b.order || 0));
-      if (group[0] && !ids.includes(group[0].id)) ids.push(group[0].id);
-    });
-    S.plan = { date: today(), ids, bonus: false, locked: true };
-    UI.cur = 0; save();
-    if (window.speechSynthesis) window.speechSynthesis.cancel(); SPEAKING = false;
-    toast("C'est rangé. Aujourd'hui, juste ça.", 3500);
-    go('today');
-  }
+  odapply: () => { odFinish(); },
+  odstart: () => { if (window.speechSynthesis) window.speechSynthesis.cancel(); SPEAKING = false; UI.cur = 0; toast("C'est rangé. Aujourd'hui, juste ça.", 3500); go('today'); }
 };
 
 /* ---------- Boucle d'affichage ---------- */
