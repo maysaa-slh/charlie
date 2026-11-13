@@ -2,6 +2,7 @@
 /* Charlie Focus : une petite appli qui dit quoi faire, sans pression. */
 
 const KEY = 'charlie.v1';
+const APP_VERSION = 6;
 const SPEED = Number(new URLSearchParams(location.search).get('speed')) || 1;
 
 /* ---------- Données ---------- */
@@ -511,6 +512,7 @@ function viewSettings() {
 ${cards.length ? cards.map((c) => `<div class="card" style="gap:8px;${S.adapt[c.i] ? '' : 'opacity:.75'}"><div class="eyebrow" style="color:var(--dark)">CHARLIE A REMARQUÉ</div><div style="font-size:17px;font-weight:800;line-height:1.25">${esc(c.seen)}</div><div class="sub" style="font-size:15px">${esc(c.does)}</div>
 <div class="row between"><span style="font-size:15px;font-weight:800;color:${S.adapt[c.i] ? 'var(--dark)' : 'var(--ink3)'}">${S.adapt[c.i] ? 'Appliqué' : 'Mis de côté'}</span><button class="btn small ${S.adapt[c.i] ? 'ghost' : ''}" data-act="adapt" data-i="${c.i}">${S.adapt[c.i] ? 'Pas pour moi' : 'Réactiver'}</button></div></div>`).join('') : '<div class="card"><p class="sub">Charlie t\'observe doucement. Quand il aura remarqué des choses utiles, elles apparaîtront ici.</p></div>'}
 <div class="tint-box">Charlie regarde seulement comment tu travailles, jamais ce que tu n'as pas fait.</div>
+<p class="muted" style="font-size:13px;font-weight:700;text-align:center">Charlie Focus · version ${APP_VERSION}</p>
 <div class="card"><div class="eyebrow">DONNÉES</div><button class="btn small ghost" data-act="demo">Charger un exemple de tâches</button>
 ${UI.resetAsk ? '<p class="sub" style="font-size:15px">Ça efface tes tâches, ta voiture et tes réglages sur ce téléphone.</p><div class="row" style="gap:8px"><button class="btn small" style="flex:1" data-act="reset">Oui, tout effacer</button><button class="btn small ghost" style="flex:1" data-act="resetno">Non, garder</button></div>' : '<button class="btn small ghost" data-act="resetask">Tout effacer</button>'}</div>
 </main>${nav()}`;
@@ -695,6 +697,7 @@ function dictate(inputId, after, prefix) {
   if (window.navigator.standalone) {
     UI.micMsg = "Sur iPhone, dans l'appli installée, c'est le micro de ton clavier qui dicte : touche-le, en bas à droite du clavier.";
     render();
+    toast(UI.micMsg, 6000);
     const el0 = document.getElementById(inputId);
     if (el0) el0.focus();
     return;
